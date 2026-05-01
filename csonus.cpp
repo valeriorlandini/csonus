@@ -48,20 +48,20 @@ struct BitInv : csnd::Plugin<1, 9>
     {
         csnd::AudioSig out(this, outargs(0), true);
         csnd::AudioSig in(this, inargs(0));
+        
+        MYFLT bit1 = inargs[1];
+        MYFLT bit2 = inargs[2];
+        MYFLT bit3 = inargs[3];
+        MYFLT bit4 = inargs[4];
+        MYFLT bit5 = inargs[5];
+        MYFLT bit6 = inargs[6];
+        MYFLT bit7 = inargs[7];
+        MYFLT bit8 = inargs[8];
 
         auto in_it = in.begin();
         for (auto &s : out)
         {
             s = *in_it++;
-
-            MYFLT bit1 = inargs[1];
-            MYFLT bit2 = inargs[2];
-            MYFLT bit3 = inargs[3];
-            MYFLT bit4 = inargs[4];
-            MYFLT bit5 = inargs[5];
-            MYFLT bit6 = inargs[6];
-            MYFLT bit7 = inargs[7];
-            MYFLT bit8 = inargs[8];
 
             if (s < -1.0)
             {
@@ -90,6 +90,37 @@ struct BitInv : csnd::Plugin<1, 9>
             // Scale back to -1.0 to 1.0
             s = (in / 255.0) * 2.0 - 1.0;
 
+        }
+        return OK;
+    }
+};
+
+
+/******************************************************************************
+perceptron: A simple operator that applies the classical perceptron algorithm
+to an audio signal.
+
+Control Parameters:
+  weight: The weight for the input signal.
+  bias: The bias for the output signal.
+
+Usage:
+  a perceptron a, weight, bias
+*********************************************************************************/
+struct Perceptron : csnd::Plugin<1, 3>
+{
+    int32_t aperf()
+    {
+        csnd::AudioSig out(this, outargs(0), true);
+        csnd::AudioSig in(this, inargs(0));
+        
+        MYFLT weight = inargs[1];
+        MYFLT bias = inargs[2];
+
+        auto in_it = in.begin();
+        for (auto &s : out)
+        {
+            s = *in_it++ * weight + bias;
         }
         return OK;
     }

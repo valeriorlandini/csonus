@@ -1,0 +1,3 @@
+[submodule "soutel"]
+	path = soutel
+	url = https://github.com/valeriorlandini/soutel.git
