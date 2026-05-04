@@ -23,6 +23,8 @@ SOFTWARE.
 #include <plugin.h>
 #include <cmath>
 
+#include "soutel/include/soutel/soutel.h"
+
 
 /******************************************************************************
 bitinv: Invert specific bits of an audio signal.
@@ -31,7 +33,7 @@ This opcode takes an audio signal and inverts specific bits of its 8-bit
 representation based on user-specified parameters. The input signal is first
 scaled to fit within the range of 8 bits (0-255), and then the specified bits
 are inverted using bitwise XOR operations. Finally, the modified signal is
-scaled back to the original audio range (-1.0 to 1.0)
+scaled back to the original audio range (-1.0 to 1.0).
 
 Control Parameters:
   bit1, bit2, ..., bit8: Boolean parameters (0 or 1) that determine which
@@ -41,7 +43,7 @@ Control Parameters:
 
 Usage:
   a bitinv a, bit1, bit2, bit3, bit4, bit5, bit6, bit7, bit8
-*********************************************************************************/
+******************************************************************************/
 struct BitInv : csnd::Plugin<1, 9>
 {
     int32_t aperf()
@@ -100,13 +102,20 @@ struct BitInv : csnd::Plugin<1, 9>
 perceptron: A simple operator that applies the classical perceptron algorithm
 to an audio signal.
 
+This opcode takes an audio signal and applies a simple perceptron algorithm to
+it. The input signal is multiplied by a weight and then added to a bias. The
+result is then passed through a step function, which outputs 1.0 if the result
+is greater than 0, and 0.0 otherwise. This can be used to create a simple
+thresholding effect, where the output is either on or off based on the input
+signal and the specified weight and bias parameters.
+
 Control Parameters:
   weight: The weight for the input signal.
   bias: The bias for the output signal.
 
 Usage:
   a perceptron a, weight, bias
-*********************************************************************************/
+******************************************************************************/
 struct Perceptron : csnd::Plugin<1, 3>
 {
     int32_t aperf()
@@ -121,10 +130,108 @@ struct Perceptron : csnd::Plugin<1, 3>
         for (auto &s : out)
         {
             s = *in_it++ * weight + bias;
+            s = s > 0.0 ? 1.0 : 0.0;
         }
         return OK;
     }
 };
+
+
+/******************************************************************************
+phasedist: phase distortion oscillator.
+
+This opcode generates a classic phase distortion waveform with user-specified
+distortion parameter. The frequency of the oscillator is controlled by the freq
+parameter, while the shape of the waveform is determined by the distortion
+parameter d. The phase distortion algorithm modifies the phase of a basic
+oscillator to create a wide variety of timbres, from simple sine waves to more
+complex and harmonically rich sounds.
+
+Control Parameters:
+  freq: The frequency of the oscillator.
+  d: The phase distortion parameter.
+
+Usage:
+  a phasedist freq, d
+*********************************************************************************/
+struct PhaseDist : csnd::Plugin<1, 4> {
+    soutel::PDOsc<MYFLT> *pd;
+
+    int init()
+    {
+        pd = new soutel::PDOsc<MYFLT>();
+        pd->set_sample_rate(this->sr());
+        return OK;
+    }
+    
+    int aperf()
+    {
+        csnd::AudioSig out(this, outargs(0));
+        MYFLT freq = inargs[0];
+        MYFLT d = inargs[1];
+
+        pd->set_frequency(freq);
+        pd->set_d(d);
+        
+        for (auto &s : out)
+        {
+            s = pd->run();
+        }
+    return OK;
+  }
+};
+
+
+/******************************************************************************
+pulsar: Pulsar oscillator, as described in "Microsound" by Curtis Roads.
+
+This opcode generates a pulsar waveform based on user-specified parameters such
+as frequency, duty cycle, waveform type, and window type. The pulsar is a
+short burst of sound that can be shaped using different waveforms and windows to
+create a wide variety of timbres. The frequency and duty cycle control the
+rate and duration of the pulsar bursts, while the waveform and window types
+shape the sound of each burst.
+
+Control Parameters:
+  freq: The frequency of the oscillator.
+  duty_cycle: The duty cycle of the pulsar waveform.
+  waveform: The type of waveform to generate.
+  window: The type of window to apply.
+
+Usage:
+  a pulsar freq, duty_cycle, waveform, window
+*********************************************************************************/
+struct Pulsar : csnd::Plugin<1, 4> {
+    soutel::Pulsar<MYFLT> *pulsar;
+
+    int init()
+    {
+        pulsar = new soutel::Pulsar<MYFLT>();
+        pulsar->set_sample_rate(this->sr());
+        return OK;
+    }
+    
+    int aperf()
+    {
+        csnd::AudioSig out(this, outargs(0));
+        MYFLT freq = inargs[0];
+        MYFLT duty_cycle = inargs[1];
+        MYFLT waveform = inargs[2];
+        MYFLT window = inargs[3];
+        
+        pulsar->set_frequency(freq);
+        pulsar->set_duty_cycle(duty_cycle);
+        pulsar->set_waveform((soutel::PulsarWaveforms)(int)waveform);
+        pulsar->set_window((soutel::PulsarWindows)(int)window);
+        
+        for (auto &s : out)
+        {
+            s = pulsar->run();
+        }
+    return OK;
+  }
+};
+
 
 
 /******************************************************************************
@@ -142,11 +249,11 @@ Control Parameters:
 
 Usage:
   a quadpan a, x, y
-*********************************************************************************/
+******************************************************************************/
 struct QuadPan : csnd::Plugin<4, 3>
 {
-    constexpr pi = 3.14159265358979323846;
-    constexpr pi_2 = pi * 0.5;
+    const MYFLT pi = 3.14159265358979323846;
+    const MYFLT pi_2 = pi * 0.5;
 
     int32_t aperf()
     {
@@ -176,6 +283,9 @@ struct QuadPan : csnd::Plugin<4, 3>
 void csnd::on_load(csnd::Csound *csound)
 {
     csnd::plugin<BitInv>(csound, "bitinv", "a", "akkkkkkkk", csnd::thread::a);
+    csnd::plugin<Perceptron>(csound, "perceptron", "a", "akk", csnd::thread::a);
+    csnd::plugin<PhaseDist>(csound, "phasedist", "a", "kk", csnd::thread::ia);
+    csnd::plugin<Pulsar>(csound, "pulsar", "a", "kkkk", csnd::thread::ia);
     csnd::plugin<QuadPan>(csound, "quadpan", "aaaa", "akk", csnd::thread::a);
 }
 #else
@@ -183,6 +293,12 @@ extern "C" int32_t bitinv_init_modules(CSOUND *csound)
 {
     csnd::plugin<BitInv>((csnd::Csound *)csound, "bitinv", "a", "akkkkkkkk",
                          csnd::thread::a);
+    csnd::plugin<Perceptron>((csnd::Csound *)csound, "perceptron", "a", "akk",
+                         csnd::thread::a);
+    csnd::plugin<PhaseDist>((csnd::Csound *)csound, "phasedist", "a", "kk",
+                         csnd::thread::ia);
+    csnd::plugin<Pulsar>((csnd::Csound *)csound, "pulsar", "a", "kkkk",
+                         csnd::thread::ia);
     csnd::plugin<QuadPan>((csnd::Csound *)csound, "quadpan", "aaaa", "akk",
                          csnd::thread::a);
     return OK;
