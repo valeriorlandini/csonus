@@ -42,7 +42,7 @@ Control Parameters:
   inverted.
 
 Usage:
-  a bitinv a, bit1, bit2, bit3, bit4, bit5, bit6, bit7, bit8
+  a bitinv in, bit1, bit2, bit3, bit4, bit5, bit6, bit7, bit8
 ******************************************************************************/
 struct BitInv : csnd::Plugin<1, 9>
 {
@@ -99,6 +99,68 @@ struct BitInv : csnd::Plugin<1, 9>
 
 
 /******************************************************************************
+lorenz: Lorenz attractor.
+
+This opcode generates a classic Lorenz attractor waveform with user-specified
+parameters. The Lorenz attractor is a system of three ordinary differential
+equations that exhibits chaotic behavior. The output consists of three audio
+signals corresponding to the x, y, and z coordinates of the attractor.
+The speed of the attractor's evolution is controlled by the speed parameter,
+while the shape of the attractor is determined by the beta, sigma, and rho
+parameters. By adjusting these parameters, users can explore a wide variety
+of chaotic trajectories, creating complex and evolving soundscapes, ideal as
+modulation sources or for generating unique textures.
+
+Control Parameters:
+  amp: The amplitude of the output signals.
+  speed: The speed of the attractor's evolution.
+  beta: The beta parameter.
+  sigma: The sigma parameter.
+  rho: The rho parameter.
+
+Usage:
+  ax, ay, az lorenz amp, speed, beta, sigma, rho
+*********************************************************************************/
+struct Lorenz : csnd::Plugin<3, 4> {
+    soutel::Lorenz<MYFLT> *lrnz;
+
+    int init()
+    {
+        lrnz = new soutel::Lorenz<MYFLT>();
+        return OK;
+    }
+    
+    int aperf()
+    {
+        csnd::AudioSig x(this, outargs(0));
+        csnd::AudioSig y(this, outargs(1));
+        csnd::AudioSig z(this, outargs(2));
+        MYFLT amp = inargs[0];
+        MYFLT speed = inargs[1];
+        MYFLT beta = inargs[2];
+        MYFLT sigma = inargs[3];
+        MYFLT rho = inargs[4];
+
+        lrnz->set_speed(speed * 0.02);
+        lrnz->set_beta(beta);
+        lrnz->set_sigma(sigma);
+        lrnz->set_rho(rho);
+
+        for (uint32_t i = offset; i < nsmps; i++)
+        {
+            lrnz->step();
+
+            x[i] = std::clamp(lrnz->get_x() * 0.04, -1.0, 1.0) * amp;
+            y[i] = std::clamp(lrnz->get_y() * 0.04, -1.0, 1.0) * amp;
+            z[i] = std::clamp((lrnz->get_z() * 0.04) - 1.0, -1.0, 1.0) * amp;
+        }
+
+    return OK;
+  }
+};
+
+
+/******************************************************************************
 perceptron: A simple operator that applies the classical perceptron algorithm
 to an audio signal.
 
@@ -114,7 +176,7 @@ Control Parameters:
   bias: The bias for the output signal.
 
 Usage:
-  a perceptron a, weight, bias
+  a perceptron in, weight, bias
 ******************************************************************************/
 struct Perceptron : csnd::Plugin<1, 3>
 {
@@ -148,11 +210,12 @@ oscillator to create a wide variety of timbres, from simple sine waves to more
 complex and harmonically rich sounds.
 
 Control Parameters:
+  amp: The amplitude of the output signal.
   freq: The frequency of the oscillator.
   d: The phase distortion parameter.
 
 Usage:
-  a phasedist freq, d
+  a phasedist amp, freq, d
 *********************************************************************************/
 struct PhaseDist : csnd::Plugin<1, 4> {
     soutel::PDOsc<MYFLT> *pd;
@@ -167,15 +230,16 @@ struct PhaseDist : csnd::Plugin<1, 4> {
     int aperf()
     {
         csnd::AudioSig out(this, outargs(0));
-        MYFLT freq = inargs[0];
-        MYFLT d = inargs[1];
+        MYFLT amp = inargs[0];
+        MYFLT freq = inargs[1];
+        MYFLT d = inargs[2];
 
         pd->set_frequency(freq);
         pd->set_d(d);
         
         for (auto &s : out)
         {
-            s = pd->run();
+            s = pd->run() * amp;
         }
     return OK;
   }
@@ -193,13 +257,14 @@ rate and duration of the pulsar bursts, while the waveform and window types
 shape the sound of each burst.
 
 Control Parameters:
+  amp: The amplitude of the output signal.
   freq: The frequency of the oscillator.
   duty_cycle: The duty cycle of the pulsar waveform.
   waveform: The type of waveform to generate.
   window: The type of window to apply.
 
 Usage:
-  a pulsar freq, duty_cycle, waveform, window
+  a pulsar amp, freq, duty_cycle, waveform, window
 *********************************************************************************/
 struct Pulsar : csnd::Plugin<1, 4> {
     soutel::Pulsar<MYFLT> *pulsar;
@@ -215,10 +280,11 @@ struct Pulsar : csnd::Plugin<1, 4> {
     {
         csnd::AudioSig out(this, outargs(0));
         MYFLT freq = inargs[0];
-        MYFLT duty_cycle = inargs[1];
-        MYFLT waveform = inargs[2];
-        MYFLT window = inargs[3];
-        
+        MYFLT amp = inargs[1];
+        MYFLT duty_cycle = inargs[2];
+        MYFLT waveform = inargs[3];
+        MYFLT window = inargs[4];
+
         pulsar->set_frequency(freq);
         pulsar->set_duty_cycle(duty_cycle);
         pulsar->set_waveform((soutel::PulsarWaveforms)(int)waveform);
@@ -226,7 +292,7 @@ struct Pulsar : csnd::Plugin<1, 4> {
         
         for (auto &s : out)
         {
-            s = pulsar->run();
+            s = pulsar->run() * amp;
         }
     return OK;
   }
@@ -248,7 +314,7 @@ Control Parameters:
   x, y: Control parameters (0.0 to 1.0) that determine the panning position in a 2D space.
 
 Usage:
-  a quadpan a, x, y
+  afl, afr, arl, arr quadpan in, x, y
 ******************************************************************************/
 struct QuadPan : csnd::Plugin<4, 3>
 {
@@ -282,6 +348,7 @@ struct QuadPan : csnd::Plugin<4, 3>
 void csnd::on_load(csnd::Csound *csound)
 {
     csnd::plugin<BitInv>(csound, "bitinv", "a", "akkkkkkkk", csnd::thread::a);
+    csnd::plugin<Lorenz>(csound, "lorenz", "aaa", "akkkkk", csnd::thread::ia);
     csnd::plugin<Perceptron>(csound, "perceptron", "a", "akk", csnd::thread::a);
     csnd::plugin<PhaseDist>(csound, "phasedist", "a", "kk", csnd::thread::ia);
     csnd::plugin<Pulsar>(csound, "pulsar", "a", "kkkk", csnd::thread::ia);
@@ -292,6 +359,8 @@ extern "C" int32_t bitinv_init_modules(CSOUND *csound)
 {
     csnd::plugin<BitInv>((csnd::Csound *)csound, "bitinv", "a", "akkkkkkkk",
                          csnd::thread::a);
+    csnd::plugin<Lorenz>((csnd::Csound *)csound, "lorenz", "aaa", "akkkkk",
+                         csnd::thread::ia);
     csnd::plugin<Perceptron>((csnd::Csound *)csound, "perceptron", "a", "akk",
                          csnd::thread::a);
     csnd::plugin<PhaseDist>((csnd::Csound *)csound, "phasedist", "a", "kk",
