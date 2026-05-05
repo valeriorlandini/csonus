@@ -252,11 +252,10 @@ Usage:
 ******************************************************************************/
 struct QuadPan : csnd::Plugin<4, 3>
 {
-    const MYFLT pi = 3.14159265358979323846;
-    const MYFLT pi_2 = pi * 0.5;
-
     int32_t aperf()
     {
+        const MYFLT pi = 3.14159265358979323846;
+        const MYFLT pi_2 = pi * 0.5;
         MYFLT *fl = outargs(0);
         MYFLT *fr = outargs(1);
         MYFLT *rl = outargs(2);
