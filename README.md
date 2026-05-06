@@ -39,6 +39,12 @@ Currently implemented opcodes are:
     - Inputs: audio input, x (left-right 0..1), y (front-rear 0..1)
     - Behavior: Distributes input across four outputs using cosine-based amplitude law for smooth panning.
 
+- `roessler`
+    - Purpose: Generates three audio-rate signals corresponding to the x/y/z coordinates of a Roessler attractor.
+    - Usage: `ax, ay, az roessler amp, speed, a, b, c`
+    - Inputs: amplitude, speed, a, b, c
+    - Behavior: Steps a Roessler system each sample and outputs scaled/clamped x, y, z suitable as modulation sources or audio textures.
+
 
 License & Attribution
 ---------------------
