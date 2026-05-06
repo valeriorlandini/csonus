@@ -9,6 +9,12 @@ Currently implemented opcodes are:
     - Inputs: audio input + eight boolean (0/1) controls for bit inversion (LSB = bit1, MSB = bit8).
     - Behavior: Clips input to [-1, 1], quantizes to 8 bits (0–255), XORs selected bits, then rescales to [-1, 1].
 
+- `cryptoverb`
+    - Purpose: Eerie stereo reverberation effects with three block-processing modes.
+    - Usage: `al, ar cryptoverb in_l, in_r, wet, mode, lowcut`
+    - Inputs: stereo audio input, wet mix level, mode selector (0, 1, 2), lowcut frequency.
+    - Behavior: Processes the signal through a configurable series of allpass and comb filters; the selected mode changes the filter arrangement and reverb character, while lowcut controls overall brightness.
+
 - `lorenz`
     - Purpose: Generates three audio-rate signals corresponding to the x/y/z coordinates of a Lorenz attractor.
     - Usage: ax, ay, az lorenz amp, speed, beta, sigma, rho
