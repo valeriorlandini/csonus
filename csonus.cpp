@@ -621,6 +621,55 @@ struct Roessler : csnd::Plugin<3, 4>
 };
 
 
+/******************************************************************************
+tent: A control rate opcode that applies the classical tent map algorithm.
+
+This opcode takes a control signal and applies a simple tent map algorithm to
+it. The input signal is multiplied by a weight and then added to a bias. The
+result is then processed through the tent map function, which creates a chaotic
+output signal. The tent map is a piecewise linear function that can generate
+complex and chaotic behavior, making it useful for creating evolving modulation
+sources or for generating unique textures in a control signal.
+
+Control Parameters:
+  start: The initial value for the tent map (0.0 to 1.0).
+  mu: The mu parameter for the tent map, which controls the shape of the function
+  and the degree of chaos in the output signal (0.0 to 2.0, with values from 1.41
+  onwards leading to chaotic behavior).
+
+Usage:
+  k tent start, mu
+******************************************************************************/
+struct Tent : csnd::Plugin<1, 2>
+{
+    MYFLT *out = nullptr;
+
+    int init()
+    {
+        out = new MYFLT(std::clamp(inargs[0], 0.0, 1.0));
+        return OK;
+    }
+
+    int32_t kperf()
+    {
+        MYFLT mu = std::clamp(inargs[1], 0.0, 2.0);
+
+        if (*out < 0.5)
+        {
+            *out *= mu;
+        }
+        else
+        {
+            *out = (1.0 - *out) * mu;
+        }
+
+        outargs[0] = *out;
+
+        return OK;
+    }
+};
+
+
 // Registration functions
 #ifdef BUILD_PLUGINS
 #include <modload.h>
@@ -636,6 +685,7 @@ void csnd::on_load(csnd::Csound *csound)
     csnd::plugin<Pulsar>(csound, "pulsar", "a", "kkkk", csnd::thread::ia);
     csnd::plugin<QuadPan>(csound, "quadpan", "aaaa", "akk", csnd::thread::a);
     csnd::plugin<Roessler>(csound, "roessler", "aaa", "kkkkk", csnd::thread::ia);
+    csnd::plugin<Tent>(csound, "tent", "k", "kk", csnd::thread::ik);
 }
 #else
 extern "C" int32_t bitinv_init_modules(CSOUND *csound)
@@ -659,6 +709,7 @@ extern "C" int32_t bitinv_init_modules(CSOUND *csound)
                           csnd::thread::a);
     csnd::plugin<Roessler>((csnd::Csound *)csound, "roessler", "aaa", "kkkkk",
                            csnd::thread::ia);
+    csnd::plugin<Tent>((csnd::Csound *)csound, "tent", "k", "kk", csnd::thread::ik);
     return OK;
 }
 #endif

@@ -63,6 +63,12 @@ Currently implemented opcodes are:
     - Inputs: amplitude, speed, a, b, c
     - Behavior: Steps a Roessler system each sample and outputs scaled/clamped x, y, z suitable as modulation sources or audio textures.
 
+- `tent`
+    - Purpose: Control-rate tent map generator for chaotic modulation.
+    - Usage: `k tent start, mu`
+    - Inputs: initial value (0.0–1.0), mu parameter (0.0–2.0; values above ~1.41 produce chaos)
+    - Behavior: Scales and biases the incoming control value, then applies a piecewise linear tent map to create complex, evolving control output.
+
 
 License & Attribution
 ---------------------
