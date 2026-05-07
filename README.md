@@ -8,13 +8,19 @@ Currently implemented opcodes are:
     - Usage: `a bitinv in, bit1, bit2, bit3, bit4, bit5, bit6, bit7, bit8`
     - Inputs: audio input + eight boolean (0/1) controls for bit inversion (LSB = bit1, MSB = bit8).
     - Behavior: Clips input to [-1, 1], quantizes to 8 bits (0–255), XORs selected bits, then rescales to [-1, 1].
+    
+- `byteplay`
+    - Purpose: Classic bytebeat waveform generator using user-selected formula and sample-rate reduction.
+    - Usage: `a byteplay amp, formula_idx, sr_red`
+    - Inputs: amplitude, formula index (0–15), sample-rate reduction factor
+    - Behavior: Produces a single evolving audio signal from a bytebeat expression; formula_idx selects the algorithm, and sr_red controls the effective playback rate and evolution speed.
 
 - `cheby`
     - Purpose: Distortion using a Chebyshev polynomial applied to the input signal.
     - Usage: `a cheby in, order`
     - Inputs: audio input, polynomial order (0–10; fractional values interpolate between nearest integer orders).
     - Behavior: Processes the input through a Chebyshev function of the specified order, producing increasingly complex harmonic distortion as the order increases.
-    
+
 - `cryptoverb`
     - Purpose: Eerie stereo reverberation effects with three block-processing modes.
     - Usage: `al, ar cryptoverb in_l, in_r, wet, mode, lowcut`

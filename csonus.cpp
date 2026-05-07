@@ -99,6 +99,125 @@ struct BitInv : csnd::Plugin<1, 9>
 
 
 /******************************************************************************
+byteplay: Bytebeat formulas player.
+
+This opcode generates a classic bytebeat waveform with user-specified
+parameters. Bytebeat is a form of algorithmic music that uses simple
+mathematical formulas to generate audio signals. The output consists of
+a single audio signal that evolves over time based on the specified
+formula. Users can explore a wide variety of soundscapes by adjusting
+the formula and its parameters.
+
+Control Parameters:
+  amp: The amplitude of the output signal.
+  formula_idx: The index of the bytebeat formula to use (0-15).
+  sr_red: Sample rate reduction factor, which controls the speed of the
+  evolution of the bytebeat pattern. Higher values will result in slower
+  changes in the output signal, while lower values will create faster, more
+  rapidly evolving patterns.
+
+Usage:
+  a byteplay amp, formula_idx, sr_red
+*********************************************************************************/
+struct BytePlay : csnd::Plugin<1, 3>
+{
+    uint32_t *t = nullptr;
+    uint8_t *sample_count = nullptr;
+
+    int init()
+    {
+        t = new uint32_t(0);
+        sample_count = new uint8_t(0);
+        return OK;
+    }
+
+    int32_t aperf()
+    {
+        csnd::AudioSig out(this, outargs(0), true);
+
+        MYFLT amp = inargs[0];  
+        int formula_idx = static_cast<int>(inargs[1]);
+        uint8_t sr_red = static_cast<uint8_t>(inargs[2]);
+
+        MYFLT last_out = 0.0;
+
+        for (auto &s : out)
+        {
+            ++(*sample_count);
+
+            if (*sample_count >= sr_red)
+            {
+                ++(*t);
+                uint8_t out = 0;
+
+                switch (formula_idx)
+                {
+                case 0:
+                    out = *t;
+                    break;
+                case 1:
+                    out = *t*5 & *t>>7;
+                    break;
+                case 2:
+                    out = (*t*9 & *t>>4 | *t*5 & *t>>7 | *t*3 & *t>>10) - 1;
+                    break;
+                case 3:
+                    out = (*t>>8 & *t) * (*t>>15 & *t);
+                    break;
+                case 4:
+                    out = (*t%(*t>>8|*t>>16))^*t;
+                    break;
+                case 5:
+                    out = (*t%255&*t)-(*t>>13&*t);
+                    break;
+                case 6:
+                    out = (*t-(*t>>4&*t>>8)&*t>>12)-1;
+                    break;
+                case 7:
+                    out = ((*t**t)/(*t^*t>>8))&*t;
+                    break;
+                case 8:
+                    out = ((2*(*t&1)-1)*(*t))-(*t>>8);
+                    break;
+                case 9:
+                    out = *t*(*t>>(*t>>13&*t));
+                    break;
+                case 10:
+                    out = (*t**t/(1+(*t>>9&*t>>8)))&128;
+                    break;
+                case 11:
+                    out = (*t*(-(*t>>8|*t|*t>>9|*t>>13)))^*t;
+                    break;
+                case 12:
+                    out = (*t<<13)|(*t&*t>>3)*(*t>>11&*t)-(*t>>(*t^17))-2;
+                    break;
+                case 13:
+                    out = (*t&*t>>4)-(*t>>13&*t);
+                    break;
+                case 14:
+                    out = ((*t/1000)^(*t/1001))*(*t);
+                    break;
+                case 15:
+                    out = (((*t&*t>>8)-(*t>>13&*t))&((*t&*t>>8)-(*t>>13)))^(*t>>8&*t);
+                    break;
+                }
+
+                s = ((static_cast<MYFLT>(out) - 127.5) / 127.5) * amp;
+                last_out = s;
+                *sample_count = 0;
+            }
+            else
+            {
+                s = last_out;
+            }
+        }
+
+        return OK;
+    }
+};
+
+
+/******************************************************************************
 cheby: Invert specific bits of an audio signal.
 
 This opcode takes an audio signal and applies a Chebyshev polynomial of a
@@ -142,7 +261,7 @@ cryptoverb: Eerie stereo reverberation effects with three different block
 processing modes.
 
 This opcode takes an audio signal and applies a series of reverberation effects
-based on user-specified parameters. The input signal is processed with a 
+based on user-specified parameters. The input signal is processed with a
 series of allpass and comb filter, with an arrangement that can be changed
 based on the mode parameter, yelding different reverberation characteristics.
 The lowpass cutoff parameter controls the overall brightness of the reverb.
@@ -508,6 +627,7 @@ struct Roessler : csnd::Plugin<3, 4>
 void csnd::on_load(csnd::Csound *csound)
 {
     csnd::plugin<BitInv>(csound, "bitinv", "a", "akkkkkkkk", csnd::thread::a);
+    csnd::plugin<BytePlay>(csound, "byteplay", "a", "kkk", csnd::thread::ia);
     csnd::plugin<Cheby>(csound, "cheby", "a", "ak", csnd::thread::a);
     csnd::plugin<Cryptoverb>(csound, "cryptoverb", "aa", "aakkk", csnd::thread::ia);
     csnd::plugin<Lorenz>(csound, "lorenz", "aaa", "kkkkk", csnd::thread::ia);
@@ -522,6 +642,8 @@ extern "C" int32_t bitinv_init_modules(CSOUND *csound)
 {
     csnd::plugin<BitInv>((csnd::Csound *)csound, "bitinv", "a", "akkkkkkkk",
                          csnd::thread::a);
+    csnd::plugin<BytePlay>((csnd::Csound *)csound, "byteplay", "a", "kkk",
+                           csnd::thread::ia);
     csnd::plugin<Cheby>((csnd::Csound *)csound, "cheby", "a", "ak", csnd::thread::a);
     csnd::plugin<Cryptoverb>((csnd::Csound *)csound, "cryptoverb", "aa", "aakkk",
                              csnd::thread::ia);
