@@ -9,6 +9,12 @@ Currently implemented opcodes are:
     - Inputs: audio input + eight boolean (0/1) controls for bit inversion (LSB = bit1, MSB = bit8).
     - Behavior: Clips input to [-1, 1], quantizes to 8 bits (0–255), XORs selected bits, then rescales to [-1, 1].
 
+- `cheby`
+    - Purpose: Distortion using a Chebyshev polynomial applied to the input signal.
+    - Usage: `a cheby in, order`
+    - Inputs: audio input, polynomial order (0–10; fractional values interpolate between nearest integer orders).
+    - Behavior: Processes the input through a Chebyshev function of the specified order, producing increasingly complex harmonic distortion as the order increases.
+    
 - `cryptoverb`
     - Purpose: Eerie stereo reverberation effects with three block-processing modes.
     - Usage: `al, ar cryptoverb in_l, in_r, wet, mode, lowcut`

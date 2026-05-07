@@ -99,6 +99,45 @@ struct BitInv : csnd::Plugin<1, 9>
 
 
 /******************************************************************************
+cheby: Invert specific bits of an audio signal.
+
+This opcode takes an audio signal and applies a Chebyshev polynomial of a
+specified order to it. The input signal is processed through the Chebyshev
+function, which can create a variety of distortion effects depending on
+the order parameter. The order parameter determines the degree of the Chebyshev
+polynomial applied to the input signal, with higher orders resulting in more
+complex and harmonically rich distortions.
+
+Control Parameters:
+  order: The order of the Chebyshev polynomial (non integer values will lead
+  to an interpolation between the two closest integer orders, according
+  to the fractional part of the parameter) (0-10).
+
+Usage:
+  a cheby in, order
+******************************************************************************/
+struct Cheby : csnd::Plugin<1, 2>
+{
+    int32_t aperf()
+    {
+        csnd::AudioSig out(this, outargs(0), true);
+        csnd::AudioSig in(this, inargs(0));
+
+        MYFLT order = inargs[1];
+
+        auto in_it = in.begin();
+        for (auto &s : out)
+        {
+            s = *in_it++;
+
+            s = soutel::chebyshev(s, order);
+        }
+        return OK;
+    }
+};
+
+
+/******************************************************************************
 cryptoverb: Eerie stereo reverberation effects with three different block
 processing modes.
 
@@ -469,6 +508,7 @@ struct Roessler : csnd::Plugin<3, 4>
 void csnd::on_load(csnd::Csound *csound)
 {
     csnd::plugin<BitInv>(csound, "bitinv", "a", "akkkkkkkk", csnd::thread::a);
+    csnd::plugin<Cheby>(csound, "cheby", "a", "ak", csnd::thread::a);
     csnd::plugin<Cryptoverb>(csound, "cryptoverb", "aa", "aakkk", csnd::thread::ia);
     csnd::plugin<Lorenz>(csound, "lorenz", "aaa", "kkkkk", csnd::thread::ia);
     csnd::plugin<Perceptron>(csound, "perceptron", "a", "akk", csnd::thread::a);
@@ -482,6 +522,7 @@ extern "C" int32_t bitinv_init_modules(CSOUND *csound)
 {
     csnd::plugin<BitInv>((csnd::Csound *)csound, "bitinv", "a", "akkkkkkkk",
                          csnd::thread::a);
+    csnd::plugin<Cheby>((csnd::Csound *)csound, "cheby", "a", "ak", csnd::thread::a);
     csnd::plugin<Cryptoverb>((csnd::Csound *)csound, "cryptoverb", "aa", "aakkk",
                              csnd::thread::ia);
     csnd::plugin<Lorenz>((csnd::Csound *)csound, "lorenz", "aaa", "kkkkk",
