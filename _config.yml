@@ -4,3 +4,4 @@ plugins:
 title: csonus
 description: A collection of CSound opcodes for sound experimentation and algorithmic composition
 show_downloads: false
+logo: icon.png
