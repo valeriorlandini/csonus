@@ -32,6 +32,12 @@ Currently implemented opcodes are:
     - Usage: ax, ay, az lorenz amp, speed, beta, sigma, rho
     - Inputs: amplitude, speed, beta, sigma, rho
     - Behavior: Steps a Lorenz system each sample and outputs scaled/clamped x, y, z suitable as modulation sources or audio textures.
+    
+- `neurosc`
+        - Purpose: Neural waveform generator with user-controlled latent weights.
+        - Usage: `a neurosc amp, freq, w1, w2, w3, w4, w5, w6, w7, w8, window`
+        - Inputs: amplitude, frequency, eight latent weights, window flag
+        - Behavior: Generates a single audio signal from a neural network autoencoder with eight latent variables, enabling a wide range of timbres and smoothly evolving shapes.
 
 - `perceptron`
     - Purpose: Simple step-function threshold operator (classical perceptron behavior).
