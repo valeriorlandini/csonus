@@ -136,7 +136,12 @@ struct BytePlay : csnd::Plugin<1, 3>
         csnd::AudioSig out(this, outargs(0), true);
 
         MYFLT amp = inargs[0];  
-        int formula_idx = static_cast<int>(inargs[1]);
+        uint8_t formula_idx = static_cast<uint8_t>(inargs[1]);
+        if (formula_idx > 15)
+        {
+            return csound->perf_error("Formula index out of range.", this);
+        }
+
         uint8_t sr_red = static_cast<uint8_t>(inargs[2]);
 
         MYFLT last_out = 0.0;
@@ -293,10 +298,15 @@ struct Cryptoverb : csnd::Plugin<2, 5>
         csnd::AudioSig in_r(this, inargs(1));
 
         MYFLT wet = inargs[2];
-        MYFLT mode = inargs[3];
+        unsigned int mode = static_cast<unsigned int>(inargs[3]);
+        if (mode > 2)
+        {
+            return csound->perf_error("Mode parameter out of range.", this);
+        }
+
         MYFLT lowcut = inargs[4];
 
-        cv->set_mode((unsigned int)mode);
+        cv->set_mode(mode);
         cv->set_lowpass_cutoff(lowcut);
 
         for (uint32_t i = offset; i < nsmps; i++)
@@ -305,6 +315,48 @@ struct Cryptoverb : csnd::Plugin<2, 5>
             out_l[i] = output[0] * wet + in_l[i] * (1.0 - wet);
             out_r[i] = output[1] * wet + in_r[i] * (1.0 - wet);
         }
+
+        return OK;
+    }
+};
+
+
+/******************************************************************************
+logistic: A control rate opcode that applies the classical logistic map algorithm.
+
+This opcode takes a control signal and applies a simple logistic map algorithm to
+it. The input signal is multiplied by a weight and then added to a bias. The
+result is then processed through the logistic map function, which creates a chaotic
+output signal. The logistic map is a piecewise linear function that can generate
+complex and chaotic behavior, making it useful for creating evolving modulation
+sources or for generating unique textures in a control signal.
+
+Control Parameters:
+  start: The initial value for the logistic map (0.0 to 1.0).
+  r: The r parameter for the logistic map, which controls the shape of the function
+  and the degree of chaos in the output signal (0.0 to 3.999, with values from 3.57
+  onwards leading to chaotic behavior).
+
+Usage:
+  k logistic start, r
+******************************************************************************/
+struct Logistic : csnd::Plugin<1, 2>
+{
+    MYFLT *out = nullptr;
+
+    int init()
+    {
+        out = new MYFLT(std::clamp(inargs[0], 0.0, 1.0));
+        return OK;
+    }
+
+    int32_t kperf()
+    {
+        MYFLT r = std::clamp(inargs[1], 0.0, 3.9999);
+
+        *out = r * *out * (1.0 - *out);
+
+        outargs[0] = *out;
 
         return OK;
     }
@@ -498,13 +550,21 @@ struct Pulsar : csnd::Plugin<1, 4>
         MYFLT freq = inargs[0];
         MYFLT amp = inargs[1];
         MYFLT duty_cycle = inargs[2];
-        MYFLT waveform = inargs[3];
-        MYFLT window = inargs[4];
+        int waveform = static_cast<int>(inargs[3]);
+        if (waveform < 0 || waveform > 6)
+        {
+            return csound->perf_error("Waveform parameter out of range.", this);
+        }
+        int window = static_cast<int>(inargs[4]);
+        if (window < 0 || window > 12)
+        {
+            return csound->perf_error("Window parameter out of range.", this);
+        }
 
         pulsar->set_frequency(freq);
         pulsar->set_duty_cycle(duty_cycle);
-        pulsar->set_waveform((soutel::PulsarWaveforms)(int)waveform);
-        pulsar->set_window((soutel::PulsarWindows)(int)window);
+        pulsar->set_waveform((soutel::PulsarWaveforms)waveform);
+        pulsar->set_window((soutel::PulsarWindows)window);
 
         for (auto &s : out)
         {
@@ -679,9 +739,10 @@ void csnd::on_load(csnd::Csound *csound)
     csnd::plugin<BytePlay>(csound, "byteplay", "a", "kkk", csnd::thread::ia);
     csnd::plugin<Cheby>(csound, "cheby", "a", "ak", csnd::thread::a);
     csnd::plugin<Cryptoverb>(csound, "cryptoverb", "aa", "aakkk", csnd::thread::ia);
+    csnd::plugin<Logistic>(csound, "logistic", "k", "kk", csnd::thread::ik);
     csnd::plugin<Lorenz>(csound, "lorenz", "aaa", "kkkkk", csnd::thread::ia);
     csnd::plugin<Perceptron>(csound, "perceptron", "a", "akk", csnd::thread::a);
-    csnd::plugin<PhaseDist>(csound, "phasedist", "a", "kk", csnd::thread::ia);
+    csnd::plugin<PhaseDist>(csound, "phasedist", "a", "kkk", csnd::thread::ia);
     csnd::plugin<Pulsar>(csound, "pulsar", "a", "kkkk", csnd::thread::ia);
     csnd::plugin<QuadPan>(csound, "quadpan", "aaaa", "akk", csnd::thread::a);
     csnd::plugin<Roessler>(csound, "roessler", "aaa", "kkkkk", csnd::thread::ia);
@@ -697,11 +758,12 @@ extern "C" int32_t bitinv_init_modules(CSOUND *csound)
     csnd::plugin<Cheby>((csnd::Csound *)csound, "cheby", "a", "ak", csnd::thread::a);
     csnd::plugin<Cryptoverb>((csnd::Csound *)csound, "cryptoverb", "aa", "aakkk",
                              csnd::thread::ia);
+    csnd::plugin<Logistic>((csnd::Csound *)csound, "logistic", "k", "kk", csnd::thread::ik);
     csnd::plugin<Lorenz>((csnd::Csound *)csound, "lorenz", "aaa", "kkkkk",
                          csnd::thread::ia);
     csnd::plugin<Perceptron>((csnd::Csound *)csound, "perceptron", "a", "akk",
                              csnd::thread::a);
-    csnd::plugin<PhaseDist>((csnd::Csound *)csound, "phasedist", "a", "kk",
+    csnd::plugin<PhaseDist>((csnd::Csound *)csound, "phasedist", "a", "kkk",
                             csnd::thread::ia);
     csnd::plugin<Pulsar>((csnd::Csound *)csound, "pulsar", "a", "kkkk",
                          csnd::thread::ia);
