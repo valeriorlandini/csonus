@@ -27,6 +27,12 @@ Currently implemented opcodes are:
     - Inputs: stereo audio input, wet mix level, mode selector (0, 1, 2), lowcut frequency.
     - Behavior: Processes the signal through a configurable series of allpass and comb filters; the selected mode changes the filter arrangement and reverb character, while lowcut controls overall brightness.
 
+- `linden`
+    - Purpose: A configurable Lindenmayer system generator.
+    - Usage: `S linden axiom, rules, max_length`
+    - Inputs: axiom (initial sequence string), rules (production rules string), max_length (maximum output length).
+    - Behavior: Takes a string and a set of production rules (formatted as "A>AB,B>AC,C>BAA"), and applies the rules iteratively to generate a new sequence at each control, outputting the evolved string. The maximum string length parameter prevents excessively long outputs as the system evolves, keeping the last part of the string.
+
 - `lorenz`
     - Purpose: Generates three audio-rate signals corresponding to the x/y/z coordinates of a Lorenz attractor.
     - Usage: ax, ay, az lorenz amp, speed, beta, sigma, rho

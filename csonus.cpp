@@ -124,7 +124,7 @@ struct BytePlay : csnd::Plugin<1, 3>
     uint32_t *t = nullptr;
     uint8_t *sample_count = nullptr;
 
-    int init()
+    int32_t init()
     {
         t = new uint32_t(0);
         sample_count = new uint8_t(0);
@@ -287,7 +287,7 @@ struct Cryptoverb : csnd::Plugin<2, 5>
 {
     soutel::Cryptoverb<MYFLT> *cv;
 
-    int init()
+    int32_t init()
     {
         cv = new soutel::Cryptoverb<MYFLT>();
         cv->set_sample_rate(this->sr());
@@ -326,6 +326,117 @@ struct Cryptoverb : csnd::Plugin<2, 5>
 
 
 /******************************************************************************
+linden: A configurable Lindenmayer system.
+
+This opcode takes a string representing the initial sequence and a set of
+production rules, and applies the rules iteratively to generate a new sequence
+at each control, which is then output as a string. The production rules ar
+defined in the format "A>AB,B>AC,C>BAA", where the character before the ">" is
+the input (one single character) and the string after the ">" is the output
+that will replace it (and may be a string of any length). The maximum string
+length parameter allows users to limit the length of the output sequence, which
+can be useful to prevent excessively long outputs as the system evolves.
+
+Control Parameters:
+  axiom: The initial value for the Lindenmayer system (a string).
+  rules: The production rules for the Lindenmayer system (a string).
+  max_length: The maximum length of the output sequence (an integer).
+
+Usage:
+  S linden axiom, rules, max_length
+******************************************************************************/
+struct Linden : csnd::Plugin<1, 3>
+{
+    struct rule
+    {
+        char input;
+        std::string output;
+    };
+
+    std::string *sequence = nullptr;
+    std::vector<rule> *rules;
+    unsigned int *max_string_length = nullptr;
+
+    int32_t init()
+    {
+        sequence = new std::string(inargs.str_data(0).data);
+        rules = new std::vector<rule>();
+        auto all_rules = split(inargs.str_data(1).data, ',');
+
+        max_string_length = new unsigned int(inargs[2]);
+
+        for (auto &r : all_rules)
+        {
+            auto curr_rule = split(r, '>');
+            if (curr_rule.size() > 1)
+            {
+                rule curr_rule_struct;
+                curr_rule_struct.input = curr_rule[0].at(0);
+                curr_rule_struct.output = curr_rule[1];
+                rules->push_back(curr_rule_struct);
+            }
+        }
+
+        return OK;
+    }
+
+    int32_t kperf()
+    {
+        std::string next_sequence = "";
+
+        for (unsigned int i = 0; i < sequence->size(); i++)
+        {
+            char c = sequence->at(i);
+            bool rule_applied = false;
+            for (auto r = 0; r < rules->size(); r++)
+            {
+                if (c == rules->at(r).input)
+                {
+                    next_sequence += rules->at(r).output;
+                    rule_applied = true;
+                    break;
+                }
+            }
+            if (!rule_applied)
+            {
+                next_sequence += c;
+            }
+        }
+
+        if (*max_string_length > 0 && next_sequence.size() > *max_string_length)
+        {
+            next_sequence = next_sequence.substr(next_sequence.size() - *max_string_length);
+        }
+
+        char* ns = new char[next_sequence.size() + 1];
+        std::strcpy(ns, next_sequence.c_str());
+        char *result = csound->strdup(ns);
+        if (result == nullptr)
+        {
+            return csound->perf_error("Memory allocation failed", this);
+        }
+        outargs.str_data(0).data = result;
+        *sequence = next_sequence;
+        return OK;
+    }
+
+    std::vector<std::string> split(const std::string& str, char delimiter)
+    {
+        std::vector<std::string> result;
+        std::stringstream ss(str);
+        std::string item;
+
+        while (std::getline(ss, item, delimiter))
+        {
+            result.push_back(item);
+        }
+
+        return result;
+    }
+};
+
+
+/******************************************************************************
 logistic: A control rate opcode that applies the classical logistic map algorithm.
 
 This opcode takes a control signal and applies a simple logistic map algorithm to
@@ -348,7 +459,7 @@ struct Logistic : csnd::Plugin<1, 2>
 {
     MYFLT *out = nullptr;
 
-    int init()
+    int32_t init()
     {
         out = new MYFLT(std::clamp(inargs[0], 0.0, 1.0));
         return OK;
@@ -394,7 +505,7 @@ struct Lorenz : csnd::Plugin<3, 4>
 {
     soutel::Lorenz<MYFLT> *lrnz;
 
-    int init()
+    int32_t init()
     {
         lrnz = new soutel::Lorenz<MYFLT>();
         return OK;
@@ -452,7 +563,7 @@ struct Neurosc : csnd::Plugin<1, 11>
 {
     soutel::NeuralWave<MYFLT> *osc;
 
-    int init()
+    int32_t init()
     {
         osc = new soutel::NeuralWave<MYFLT>();
         osc->set_sample_rate(this->sr());
@@ -547,7 +658,7 @@ struct PhaseDist : csnd::Plugin<1, 4>
 {
     soutel::PDOsc<MYFLT> *pd;
 
-    int init()
+    int32_t init()
     {
         pd = new soutel::PDOsc<MYFLT>();
         pd->set_sample_rate(this->sr());
@@ -597,7 +708,7 @@ struct Pulsar : csnd::Plugin<1, 4>
 {
     soutel::Pulsar<MYFLT> *pulsar;
 
-    int init()
+    int32_t init()
     {
         pulsar = new soutel::Pulsar<MYFLT>();
         pulsar->set_sample_rate(this->sr());
@@ -705,7 +816,7 @@ struct Roessler : csnd::Plugin<3, 4>
 {
     soutel::Roessler<MYFLT> *rsslr;
 
-    int init()
+    int32_t init()
     {
         rsslr = new soutel::Roessler<MYFLT>();
         return OK;
@@ -764,7 +875,7 @@ struct Tent : csnd::Plugin<1, 2>
 {
     MYFLT *out = nullptr;
 
-    int init()
+    int32_t init()
     {
         out = new MYFLT(std::clamp(inargs[0], 0.0, 1.0));
         return OK;
@@ -799,6 +910,7 @@ void csnd::on_load(csnd::Csound *csound)
     csnd::plugin<BytePlay>(csound, "byteplay", "a", "kkk", csnd::thread::ia);
     csnd::plugin<Cheby>(csound, "cheby", "a", "ak", csnd::thread::a);
     csnd::plugin<Cryptoverb>(csound, "cryptoverb", "aa", "aakkk", csnd::thread::ia);
+    csnd::plugin<Linden>(csound, "linden", "S", "SSo", csnd::thread::ik);
     csnd::plugin<Logistic>(csound, "logistic", "k", "kk", csnd::thread::ik);
     csnd::plugin<Lorenz>(csound, "lorenz", "aaa", "kkkkk", csnd::thread::ia);
     csnd::plugin<Neurosc>(csound, "neurosc", "a", "kkkkkkkkkkk", csnd::thread::ia);
@@ -819,6 +931,7 @@ extern "C" int32_t bitinv_init_modules(CSOUND *csound)
     csnd::plugin<Cheby>((csnd::Csound *)csound, "cheby", "a", "ak", csnd::thread::a);
     csnd::plugin<Cryptoverb>((csnd::Csound *)csound, "cryptoverb", "aa", "aakkk",
                              csnd::thread::ia);
+    csnd::plugin<Linden>((csnd::Csound *)csound, "linden", "S", "SSo", csnd::thread::ik);
     csnd::plugin<Logistic>((csnd::Csound *)csound, "logistic", "k", "kk", csnd::thread::ik);
     csnd::plugin<Lorenz>((csnd::Csound *)csound, "lorenz", "aaa", "kkkkk",
                          csnd::thread::ia);
