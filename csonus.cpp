@@ -23,6 +23,7 @@ SOFTWARE.
 #include <plugin.h>
 #include <cmath>
 
+#include "include/genealgo.h"
 #include "soutel/include/soutel/soutel.h"
 
 
@@ -320,6 +321,84 @@ struct Cryptoverb : csnd::Plugin<2, 5>
             out_r[i] = output[1] * wet + in_r[i] * (1.0 - wet);
         }
 
+        return OK;
+    }
+};
+
+
+/******************************************************************************
+genetic: A system implementing a genetic algorithm to evolve a string sequence
+towards a target string.
+
+This opcode implements a genetic algorithm that evolves a population of string
+sequences towards a target string defined by the user. The algorithm starts
+with a randomly populated population of strings, and iteratively applies
+selection, crossover, and mutation operations to evolve the population towards
+the target. The mutation rate and mating rate parameters control the frequency
+of mutation and crossover events, respectively. The output is the best matching
+string from the population at each control, which evolves over time as the
+algorithm progresses.
+
+Control Parameters:
+  target: The target string to evolve towards (a string).
+  dictionary: The set of characters allowed in the evolved strings (a string).
+  population_size: The number of strings in the population (an integer).
+  mutation_rate: The probability of a character mutating (a float).
+  mating_rate: The probability of two strings exchanging genetic material (a float).
+  multiple_crossover: Whether to allow multiple crossover points (0 or 1, default: 0).
+
+Usage:
+  S genetic target, dictionary, population_size, mutation_rate, mating_rate, multiple_crossover
+******************************************************************************/
+struct Genetic : csnd::Plugin<1, 6>
+{
+    GeneAlgo<char> *ga;
+    bool *multiple_crossover = nullptr;
+    bool *target_reached = nullptr;
+
+    int32_t init()
+    {
+        auto target = inargs.str_data(0).data;
+        auto dictionary = inargs.str_data(1).data;
+        unsigned int population_size = std::max(2u, static_cast<unsigned int>(inargs[2]));
+        float mutation_rate = inargs[3];
+        float mating_rate = inargs[4];
+        multiple_crossover = new bool(inargs[5] > 0.5);
+        target_reached = new bool(false);
+
+        ga = new GeneAlgo<char>();
+        if (!ga->populate(std::vector<char>(dictionary, dictionary + std::strlen(dictionary)),
+                          population_size, std::strlen(target)))
+        {
+            return csound->perf_error("Failed to populate genetic pool", this);
+        }
+
+        ga->set_target(std::vector<char>(target, target + std::strlen(target)), true);
+        ga->set_mutation_rate(mutation_rate);
+        ga->set_mating_rate(mating_rate);
+
+        return OK;
+    }
+
+    int32_t kperf()
+    {
+        if (!*target_reached)
+        {
+            *target_reached = ga->evolution(*multiple_crossover);
+        }
+
+        auto population = ga->get_population();
+        std::vector<char> target = population.at(0).sequence;
+        std::string target_str(target.begin(), target.end());
+
+        char* ns = new char[target_str.size() + 1];
+        std::strcpy(ns, target_str.c_str());
+        char *result = csound->strdup(ns);
+        if (result == nullptr)
+        {
+            return csound->perf_error("Memory allocation failed", this);
+        }
+        outargs.str_data(0).data = result;
         return OK;
     }
 };
@@ -910,6 +989,7 @@ void csnd::on_load(csnd::Csound *csound)
     csnd::plugin<BytePlay>(csound, "byteplay", "a", "kkk", csnd::thread::ia);
     csnd::plugin<Cheby>(csound, "cheby", "a", "ak", csnd::thread::a);
     csnd::plugin<Cryptoverb>(csound, "cryptoverb", "aa", "aakkk", csnd::thread::ia);
+    csnd::plugin<Genetic>(csound, "genetic", "S", "SSiiio", csnd::thread::ik);
     csnd::plugin<Linden>(csound, "linden", "S", "SSo", csnd::thread::ik);
     csnd::plugin<Logistic>(csound, "logistic", "k", "kk", csnd::thread::ik);
     csnd::plugin<Lorenz>(csound, "lorenz", "aaa", "kkkkk", csnd::thread::ia);
@@ -931,6 +1011,7 @@ extern "C" int32_t bitinv_init_modules(CSOUND *csound)
     csnd::plugin<Cheby>((csnd::Csound *)csound, "cheby", "a", "ak", csnd::thread::a);
     csnd::plugin<Cryptoverb>((csnd::Csound *)csound, "cryptoverb", "aa", "aakkk",
                              csnd::thread::ia);
+    csnd::plugin<Genetic>((csnd::Csound *)csound, "genetic", "S", "SSiiio", csnd::thread::ik);
     csnd::plugin<Linden>((csnd::Csound *)csound, "linden", "S", "SSo", csnd::thread::ik);
     csnd::plugin<Logistic>((csnd::Csound *)csound, "logistic", "k", "kk", csnd::thread::ik);
     csnd::plugin<Lorenz>((csnd::Csound *)csound, "lorenz", "aaa", "kkkkk",
