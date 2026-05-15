@@ -28,10 +28,10 @@ Currently implemented opcodes are:
     - Behavior: Processes the signal through a configurable series of allpass and comb filters; the selected mode changes the filter arrangement and reverb character, while lowcut controls overall brightness.
 
 - `genetic`
-        - Purpose: A genetic algorithm that evolves a population of strings toward a target string.
-        - Usage: `S genetic target, dictionary, population_size, mutation_rate, mating_rate, multiple_crossover`
-        - Inputs: target string, allowed character dictionary, population size, mutation rate, mating rate, multiple crossover flag (optional, defaults to 0).
-        - Behavior: Starts with a random population of strings and repeatedly applies selection, crossover, and mutation to converge toward the target. The best matching string is output at each control, evolving over time as the algorithm progresses.
+    - Purpose: A genetic algorithm that evolves a population of strings toward a target string.
+    - Usage: `S genetic target, dictionary, population_size, mutation_rate, mating_rate, multiple_crossover`
+    - Inputs: target string, allowed character dictionary, population size, mutation rate, mating rate, multiple crossover flag (optional, defaults to 0).
+    - Behavior: Starts with a random population of strings and repeatedly applies selection, crossover, and mutation to converge toward the target. The best matching string is output at each control, evolving over time as the algorithm progresses.
 
 - `linden`
     - Purpose: A configurable Lindenmayer system generator.
