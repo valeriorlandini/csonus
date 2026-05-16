@@ -405,6 +405,59 @@ struct Genetic : csnd::Plugin<1, 6>
 
 
 /******************************************************************************
+hztomel: Simple frequency to mel conversion opcode.
+
+This opcode takes a frequency in Hz and converts it to the mel scale, with
+three different formula options. The mel scale is a perceptual scale of pitches
+that is designed to approximate the human ear's response to different
+frequencies. The algorithm parameter allows users to choose between three
+different formulas for the conversion, each of which has been proposed in the
+literature and may yield slightly different results, particularly at higher
+frequencies.
+
+Control Parameters:
+  freq: The frequency in Hz to be converted to the mel scale.
+  algorithm: The conversion formula to use (0 for O'Shaughnessy's formula,
+  default, 1 for Slaney's formula, 2 for Linor's formula).
+
+Usage:
+  k hztomel freq, algorithm
+******************************************************************************/
+struct HzToMel : csnd::Plugin<1, 2>
+{
+    unsigned int *algorithm = nullptr;
+
+    int32_t init()
+    {
+        algorithm = new unsigned int(static_cast<unsigned int>(inargs[1]));
+        if (*algorithm > 2)
+        {
+            return csound->perf_error("Algorithm must be 0 (O'Shaughnessy), 1 (Slaney), or 2 (Linor).", this);
+        }
+        return OK;
+    }
+
+    int32_t kperf()
+    {
+        switch (*algorithm)
+        {
+        case 0: // O'Shaughnessy's formula
+            outargs[0] = 2595.0 * std::log10(1.0 + (inargs[0] / 700.0));
+            break;
+        case 1: // Slaney's formula
+            outargs[0] = inargs[0] < 1000.0 ? (3.0 * inargs[0]) / 200.0 : 15.0 + 27 * (std::log10(inargs[0] * 0.001) / std::log10(6.4));
+            break;
+        case 2: // Linor's formula
+            outargs[0] = 2410.0 * std::log10((0.0016 * inargs[0]) + 1.0);
+            break;
+        }
+
+        return OK;
+    }
+};
+
+
+/******************************************************************************
 linden: A configurable Lindenmayer system.
 
 This opcode takes a string representing the initial sequence and a set of
@@ -613,6 +666,59 @@ struct Lorenz : csnd::Plugin<3, 4>
             x[i] = std::clamp(lrnz->get_x() * 0.04, -1.0, 1.0) * amp;
             y[i] = std::clamp(lrnz->get_y() * 0.04, -1.0, 1.0) * amp;
             z[i] = std::clamp((lrnz->get_z() * 0.04) - 1.0, -1.0, 1.0) * amp;
+        }
+
+        return OK;
+    }
+};
+
+
+/******************************************************************************
+meltohz: Simple mel to frequency conversion opcode.
+
+This opcode takes a frequency in mel and converts it to the Hz scale, with
+three different formula options. The mel scale is a perceptual scale of pitches
+that is designed to approximate the human ear's response to different
+frequencies. The algorithm parameter allows users to choose between three
+different formulas for the conversion, each of which has been proposed in the
+literature and may yield slightly different results, particularly at higher
+frequencies.
+
+Control Parameters:
+  mel: The frequency in mel to be converted to the Hz scale.
+  algorithm: The conversion formula to use (0 for O'Shaughnessy's formula,
+  default, 1 for Slaney's formula, 2 for Linor's formula).
+
+Usage:
+  k meltohz freq, algorithm
+******************************************************************************/
+struct MelToHz : csnd::Plugin<1, 2>
+{
+    unsigned int *algorithm = nullptr;
+
+    int32_t init()
+    {
+        algorithm = new unsigned int(static_cast<unsigned int>(inargs[1]));
+        if (*algorithm > 2)
+        {
+            return csound->perf_error("Algorithm must be 0 (O'Shaughnessy), 1 (Slaney), or 2 (Linor).", this);
+        }
+        return OK;
+    }
+
+    int32_t kperf()
+    {
+        switch (*algorithm)
+        {
+        case 0: // O'Shaughnessy's formula
+            outargs[0] = 700.0 * (std::pow(10.0, inargs[0] / 2595.0) - 1.0);
+            break;
+        case 1: // Slaney's formula
+            outargs[0] = inargs[0] < 15.0 ? (inargs[0] * 200.0) / 3.0 : std::pow(10.0, ((inargs[0] - 15.0) * std::log10(6.4)) / 27.0) * 1000.0;
+            break;
+        case 2: // Linor's formula
+            outargs[0] = 625.0 * (std::pow(10.0, inargs[0] / 2410.0) - 1.0);
+            break;
         }
 
         return OK;
@@ -990,9 +1096,11 @@ void csnd::on_load(csnd::Csound *csound)
     csnd::plugin<Cheby>(csound, "cheby", "a", "ak", csnd::thread::a);
     csnd::plugin<Cryptoverb>(csound, "cryptoverb", "aa", "aakkk", csnd::thread::ia);
     csnd::plugin<Genetic>(csound, "genetic", "S", "SSiiio", csnd::thread::ik);
+    csnd::plugin<HzToMel>(csound, "hztomel", "k", "ko", csnd::thread::ik);
     csnd::plugin<Linden>(csound, "linden", "S", "SSo", csnd::thread::ik);
     csnd::plugin<Logistic>(csound, "logistic", "k", "kk", csnd::thread::ik);
     csnd::plugin<Lorenz>(csound, "lorenz", "aaa", "kkkkk", csnd::thread::ia);
+    csnd::plugin<MelToHz>(csound, "meltohz", "k", "ko", csnd::thread::ik);
     csnd::plugin<Neurosc>(csound, "neurosc", "a", "kkkkkkkkkkk", csnd::thread::ia);
     csnd::plugin<Perceptron>(csound, "perceptron", "a", "akk", csnd::thread::a);
     csnd::plugin<PhaseDist>(csound, "phasedist", "a", "kkk", csnd::thread::ia);
@@ -1012,10 +1120,12 @@ extern "C" int32_t bitinv_init_modules(CSOUND *csound)
     csnd::plugin<Cryptoverb>((csnd::Csound *)csound, "cryptoverb", "aa", "aakkk",
                              csnd::thread::ia);
     csnd::plugin<Genetic>((csnd::Csound *)csound, "genetic", "S", "SSiiio", csnd::thread::ik);
+    csnd::plugin<HzToMel>((csnd::Csound *)csound, "hztomel", "k", "ko", csnd::thread::ik);
     csnd::plugin<Linden>((csnd::Csound *)csound, "linden", "S", "SSo", csnd::thread::ik);
     csnd::plugin<Logistic>((csnd::Csound *)csound, "logistic", "k", "kk", csnd::thread::ik);
     csnd::plugin<Lorenz>((csnd::Csound *)csound, "lorenz", "aaa", "kkkkk",
                          csnd::thread::ia);
+    csnd::plugin<MelToHz>((csnd::Csound *)csound, "meltohz", "k", "ko", csnd::thread::ik);
     csnd::plugin<Neurosc>((csnd::Csound *)csound, "neurosc", "a", "kkkkkkkkkkk",
                           csnd::thread::ia);
     csnd::plugin<Perceptron>((csnd::Csound *)csound, "perceptron", "a", "akk",
@@ -1029,6 +1139,7 @@ extern "C" int32_t bitinv_init_modules(CSOUND *csound)
     csnd::plugin<Roessler>((csnd::Csound *)csound, "roessler", "aaa", "kkkkk",
                            csnd::thread::ia);
     csnd::plugin<Tent>((csnd::Csound *)csound, "tent", "k", "kk", csnd::thread::ik);
+    csnd::plugin<TestWave>((csnd::Csound *)csound, "testwave", "i[]", "i[]", csnd::thread::i);
     return OK;
 }
 #endif

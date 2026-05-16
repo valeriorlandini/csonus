@@ -33,6 +33,12 @@ Currently implemented opcodes are:
     - Inputs: target string, allowed character dictionary, population size, mutation rate, mating rate, multiple crossover flag (optional, defaults to 0).
     - Behavior: Starts with a random population of strings and repeatedly applies selection, crossover, and mutation to converge toward the target. The best matching string is output at each control, evolving over time as the algorithm progresses.
 
+- `hztomel`
+    - Purpose: Simple frequency to mel conversion opcode.
+    - Usage: `k hztomel freq, algorithm`
+    - Inputs: frequency in Hz, conversion formula selector (0 = O'Shaughnessy, 1 = Slaney, 2 = Linor).
+    - Behavior: Converts a frequency value to the mel scale using the selected algorithm. The mel scale is a perceptual scale designed to approximate the human ear's response to different frequencies.
+
 - `linden`
     - Purpose: A configurable Lindenmayer system generator.
     - Usage: `S linden axiom, rules, max_length`
@@ -44,7 +50,13 @@ Currently implemented opcodes are:
     - Usage: ax, ay, az lorenz amp, speed, beta, sigma, rho
     - Inputs: amplitude, speed, beta, sigma, rho
     - Behavior: Steps a Lorenz system each sample and outputs scaled/clamped x, y, z suitable as modulation sources or audio textures.
-    
+
+- `meltohz`
+    - Purpose: Simple mel to frequency conversion opcode.
+    - Usage: `k meltohz freq, algorithm`
+    - Inputs: mel frequency, algorithm selector (0 = O'Shaughnessy, 1 = Slaney, 2 = Linor).
+    - Behavior: Converts a mel-scale frequency value to Hz using the selected formula option.
+
 - `neurosc`
     - Purpose: Neural waveform generator with user-controlled latent weights.
     - Usage: `a neurosc amp, freq, w1, w2, w3, w4, w5, w6, w7, w8, window`
