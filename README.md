@@ -63,6 +63,12 @@ Currently implemented opcodes are:
     - Inputs: amplitude, frequency, eight latent weights, window flag
     - Behavior: Generates a single audio signal from a neural network autoencoder with eight latent variables, enabling a wide range of timbres and smoothly evolving shapes.
 
+- `nowave`
+    - Purpose: Scrambled wavetable oscillator generating unique deterministic waveforms from a seed and table size.
+    - Usage: `a nowave amp, freq, seed, size`
+    - Inputs: amplitude, frequency, seed, wavetable size (2-65536)
+    - Behavior: Creates a waveform by scrambling a phasor wavetable of the given size using a seeded shuffle; same seed with different sizes yields similar shape, while changing the seed produces a different waveform.
+
 - `perceptron`
     - Purpose: Simple step-function threshold operator (classical perceptron behavior).
     - Usage: `a perceptron in, weight, bias`

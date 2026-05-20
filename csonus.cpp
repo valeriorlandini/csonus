@@ -119,7 +119,7 @@ Control Parameters:
 
 Usage:
   a byteplay amp, formula_idx, sr_red
-*********************************************************************************/
+******************************************************************************/
 struct BytePlay : csnd::Plugin<1, 3>
 {
     uint32_t *t = nullptr;
@@ -632,7 +632,7 @@ Control Parameters:
 
 Usage:
   ax, ay, az lorenz amp, speed, beta, sigma, rho
-*********************************************************************************/
+******************************************************************************/
 struct Lorenz : csnd::Plugin<3, 4>
 {
     soutel::Lorenz<MYFLT> *lrnz;
@@ -743,7 +743,7 @@ Control Parameters:
 
 Usage:
   a neurosc amp, freq, w1, w2, w3, w4, w5, w6, w7, w8, window
-*********************************************************************************/
+******************************************************************************/
 struct Neurosc : csnd::Plugin<1, 11>
 {
     soutel::NeuralWave<MYFLT> *osc;
@@ -777,6 +777,96 @@ struct Neurosc : csnd::Plugin<1, 11>
             s = osc->run() * amp;
         }
 
+        return OK;
+    }
+};
+
+
+/******************************************************************************
+nowave: scrambled wavetable oscillator.
+
+This opcode generates a waveform by scrambling a phasor wavetable of a
+specified size, using a specified random seed for the shuffling process. This
+way, each combination of a seed and size parameters will yield a unique but
+deterministic waveform, while any change in the seed will lead to a completely
+different waveform, even with the same size.
+Changing the size parameter while keeping the same seed will instead lead to a
+similar waveform, with the same general shape but different details, as the
+shuffling process will be the same but applied to a different number of samples.
+
+Control Parameters:
+  amp: The amplitude of the output signal.
+  freq: The frequency of the oscillator.
+  seed: The seed for the random number generator.
+  size: The size of the wavetable (2-65536).
+
+Usage:
+  a nowave amp, freq, seed, size
+******************************************************************************/
+struct NoWave : csnd::Plugin<1, 4>
+{
+    soutel::WTOsc<MYFLT> *wt_osc;
+    std::vector<MYFLT> *wavetable;
+    std::vector<MYFLT> *values;
+
+    inline void wt_gen(const int &size)
+	{
+    	MYFLT step = 1.0 / (static_cast<MYFLT>(size) - 1.0);
+		values->resize(size);
+    
+		for (auto i = 0; i < size; i++)
+		{
+        	values->at(i) = static_cast<MYFLT>(i) * step;
+    	}
+	}
+
+	inline void shuffle_wavetable(int seed)
+	{
+    	std::mt19937 g;
+
+    	if (seed < 0)
+		{
+        	std::random_device rd;
+        	g.seed(rd());
+    	}
+		else
+		{
+        	g.seed(static_cast<unsigned>(seed));
+    	}
+    	
+		*wavetable = *values;
+
+		if (wavetable->size() > 0)
+		{
+			std::shuffle(wavetable->begin(), wavetable->end(), g);
+		}
+	}
+
+    int32_t init()
+    {
+        wt_osc = new soutel::WTOsc<MYFLT>();
+        wt_osc->set_sample_rate(this->sr());
+        wt_osc->set_windowed(false);
+        wavetable = new std::vector<MYFLT>();
+        values = new std::vector<MYFLT>();
+        wt_gen(std::clamp(static_cast<int>(inargs[2]), 2, 65536));
+        shuffle_wavetable(static_cast<int>(inargs[3]));
+        wt_osc->set_wavetable(*wavetable);
+        return OK;
+    }
+
+    int aperf()
+    {
+        csnd::AudioSig out(this, outargs(0));
+        MYFLT amp = inargs[0];
+        MYFLT freq = inargs[1];
+
+        wt_osc->set_frequency(freq);
+
+        for (auto &s : out)
+        {
+            s = wt_osc->run() * amp * 2.0 - 1.0;
+        }
         return OK;
     }
 };
@@ -838,7 +928,7 @@ Control Parameters:
 
 Usage:
   a phasedist amp, freq, d
-*********************************************************************************/
+******************************************************************************/
 struct PhaseDist : csnd::Plugin<1, 4>
 {
     soutel::PDOsc<MYFLT> *pd;
@@ -888,7 +978,7 @@ Control Parameters:
 
 Usage:
   a pulsar amp, freq, duty_cycle, waveform, window
-*********************************************************************************/
+******************************************************************************/
 struct Pulsar : csnd::Plugin<1, 4>
 {
     soutel::Pulsar<MYFLT> *pulsar;
@@ -996,7 +1086,7 @@ Control Parameters:
 
 Usage:
   ax, ay, az roessler amp, speed, a, b, c
-*********************************************************************************/
+******************************************************************************/
 struct Roessler : csnd::Plugin<3, 4>
 {
     soutel::Roessler<MYFLT> *rsslr;
@@ -1102,6 +1192,7 @@ void csnd::on_load(csnd::Csound *csound)
     csnd::plugin<Lorenz>(csound, "lorenz", "aaa", "kkkkk", csnd::thread::ia);
     csnd::plugin<MelToHz>(csound, "meltohz", "k", "ko", csnd::thread::ik);
     csnd::plugin<Neurosc>(csound, "neurosc", "a", "kkkkkkkkkkk", csnd::thread::ia);
+    csnd::plugin<NoWave>(csound, "nowave", "a", "kkii", csnd::thread::ia);
     csnd::plugin<Perceptron>(csound, "perceptron", "a", "akk", csnd::thread::a);
     csnd::plugin<PhaseDist>(csound, "phasedist", "a", "kkk", csnd::thread::ia);
     csnd::plugin<Pulsar>(csound, "pulsar", "a", "kkkk", csnd::thread::ia);
@@ -1128,6 +1219,7 @@ extern "C" int32_t bitinv_init_modules(CSOUND *csound)
     csnd::plugin<MelToHz>((csnd::Csound *)csound, "meltohz", "k", "ko", csnd::thread::ik);
     csnd::plugin<Neurosc>((csnd::Csound *)csound, "neurosc", "a", "kkkkkkkkkkk",
                           csnd::thread::ia);
+    csnd::plugin<NoWave>((csnd::Csound *)csound, "nowave", "a", "kkii", csnd::thread::ia);
     csnd::plugin<Perceptron>((csnd::Csound *)csound, "perceptron", "a", "akk",
                              csnd::thread::a);
     csnd::plugin<PhaseDist>((csnd::Csound *)csound, "phasedist", "a", "kkk",
