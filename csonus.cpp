@@ -327,6 +327,76 @@ struct Cryptoverb : csnd::Plugin<2, 5>
 
 
 /******************************************************************************
+drivers: Different distortion algorithms with a single control parameter.
+
+This opcode takes an audio signal and applies a series of distortion effects
+based on user-specified parameters. The input signal is processed with a
+series of nonlinear functions, with an arrangement that can be changed
+based on the mode parameter, yelding different distortion characteristics.
+The lowpass cutoff parameter controls the overall brightness of the reverb.
+
+Control Parameters:
+  in: The input audio signal to be processed.
+  mode: The distortion mode (0: symmetrical soft clipping, 1: tanh distortion,
+  2: dropout distortion, 3: exponential distortion, 4: bitcrushing).
+  param: The distortion parameter, with a different meaning for each mode (if
+  not specified, a default value is used).
+
+Usage:
+  a drivers in, effect_mode, effect_param
+******************************************************************************/
+struct Drivers : csnd::Plugin<1, 3>
+{
+    int *mode = nullptr;
+
+    int32_t init()
+    {
+        mode = new int(static_cast<int>(inargs[1]));
+        
+        if (*mode > 4)
+        {
+            return csound->perf_error("Mode parameter out of range.", this);
+        }
+
+        return OK;
+    }
+
+    int32_t aperf()
+    {
+        csnd::AudioSig out(this, outargs(0), true);
+        csnd::AudioSig in(this, inargs(0));
+
+        MYFLT param = inargs[2];
+
+        for (auto &s : out)
+        {
+            s = *in.begin();
+
+            switch (*mode)
+            {
+            case 0:
+                s = soutel::symmetrical_soft_clip(s, param);
+                break;
+            case 1:
+                s = tanh(s);
+                break;
+            case 2:
+                s = soutel::dropout(s, param);
+                break;
+            case 3:
+                s = soutel::exponential_distortion(s, param);
+                break;
+            case 4:
+                s = soutel::bitcrush(s, param);
+                break;
+            }
+        }
+
+        return OK;
+    }
+};
+
+/******************************************************************************
 genetic: A system implementing a genetic algorithm to evolve a string sequence
 towards a target string.
 
@@ -1185,6 +1255,7 @@ void csnd::on_load(csnd::Csound *csound)
     csnd::plugin<BytePlay>(csound, "byteplay", "a", "kkk", csnd::thread::ia);
     csnd::plugin<Cheby>(csound, "cheby", "a", "ak", csnd::thread::a);
     csnd::plugin<Cryptoverb>(csound, "cryptoverb", "aa", "aakkk", csnd::thread::ia);
+    csnd::plugin<Drivers>(csound, "drivers", "a", "aik", csnd::thread::ia);
     csnd::plugin<Genetic>(csound, "genetic", "S", "SSiiio", csnd::thread::ik);
     csnd::plugin<HzToMel>(csound, "hztomel", "k", "ko", csnd::thread::ik);
     csnd::plugin<Linden>(csound, "linden", "S", "SSo", csnd::thread::ik);
@@ -1210,6 +1281,7 @@ extern "C" int32_t bitinv_init_modules(CSOUND *csound)
     csnd::plugin<Cheby>((csnd::Csound *)csound, "cheby", "a", "ak", csnd::thread::a);
     csnd::plugin<Cryptoverb>((csnd::Csound *)csound, "cryptoverb", "aa", "aakkk",
                              csnd::thread::ia);
+    csnd::plugin<Drivers>((csnd::Csound *)csound, "drivers", "a", "aik", csnd::thread::ia);
     csnd::plugin<Genetic>((csnd::Csound *)csound, "genetic", "S", "SSiiio", csnd::thread::ik);
     csnd::plugin<HzToMel>((csnd::Csound *)csound, "hztomel", "k", "ko", csnd::thread::ik);
     csnd::plugin<Linden>((csnd::Csound *)csound, "linden", "S", "SSo", csnd::thread::ik);

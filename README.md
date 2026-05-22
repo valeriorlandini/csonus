@@ -27,6 +27,12 @@ Currently implemented opcodes are:
     - Inputs: stereo audio input, wet mix level, mode selector (0, 1, 2), lowcut frequency.
     - Behavior: Processes the signal through a configurable series of allpass and comb filters; the selected mode changes the filter arrangement and reverb character, while lowcut controls overall brightness.
 
+- `drivers`
+    - Purpose: Different distortion algorithms with a single control parameter.
+    - Usage: `a drivers in, effect_mode, effect_param`
+    - Inputs: audio input, mode selector, effect parameter.
+    - Behavior: Applies one of several distortion effects based on the selected mode, including symmetrical soft clipping, tanh, dropout, exponential, and bitcrushing; the parameter value modifies the effect behavior per mode.
+
 - `genetic`
     - Purpose: A genetic algorithm that evolves a population of strings toward a target string.
     - Usage: `S genetic target, dictionary, population_size, mutation_rate, mating_rate, multiple_crossover`
