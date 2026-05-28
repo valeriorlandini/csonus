@@ -100,6 +100,72 @@ struct BitInv : csnd::Plugin<1, 9>
 
 
 /******************************************************************************
+bstrtol/bstrtof: Convert a binary string to a long integer or a float.
+
+This opcode takes a binary string and converts it to either a long integer or
+a float, depending on the opcode used. The binary string should consist of '0's
+and '1's, and the conversion is performed by interpreting the string as a
+binary number. In either cases the number is actually converted into a float,
+but the bstrol version will convert it as it was an integer, while the bstrof
+version will convert it as a float inside [-1.0, 1.0] or [0.0, 1.0] range,
+depending on the signedness specified by the user. The number of bits to be
+considered for the conversion can also be specified, which allows for more
+flexibility in how the binary string is interpreted and converted.
+
+Control Parameters:
+  str: The binary string to be converted (a string).
+  bits: The number of bits to consider for the conversion (an integer),
+  only for the bstrtof opcode.
+  is_signed: Whether to interpret the binary string as a signed number (0 or 1,
+  default: 0), only for the bstrtof opcode.
+
+Usage:
+  k bstrtol str
+  k bstrtof str, bits, is_signed
+******************************************************************************/
+struct BStrToL : csnd::Plugin<1, 1>
+{
+    int32_t kperf()
+    {
+        MYFLT out = static_cast<MYFLT>(std::stol(inargs.str_data(0).data, nullptr, 2));
+
+        outargs[0] = out;
+
+        return OK;
+    }
+};
+struct BStrToF : csnd::Plugin<1, 3>
+{
+    MYFLT *max = nullptr;
+    bool *is_signed = nullptr;
+
+     int32_t init()
+    {
+        is_signed = new bool(inargs[2]);
+        MYFLT bits = std::max(inargs[1], static_cast<MYFLT>(1.0));
+        max = new MYFLT(std::pow(2.0, bits) - 1);
+        
+        return OK;
+    }
+
+    int32_t kperf()
+    {
+        MYFLT out = static_cast<MYFLT>(std::stol(inargs.str_data(0).data, nullptr, 2));
+        out /= *max;
+        if (*is_signed)
+        {
+            out *= 2.0;
+            out -= 1.0;
+        }
+
+        outargs[0] = out;
+        
+        return OK;
+    }
+};
+
+
+/******************************************************************************
 byteplay: Bytebeat formulas player.
 
 This opcode generates a classic bytebeat waveform with user-specified
@@ -1252,6 +1318,8 @@ struct Tent : csnd::Plugin<1, 2>
 void csnd::on_load(csnd::Csound *csound)
 {
     csnd::plugin<BitInv>(csound, "bitinv", "a", "akkkkkkkk", csnd::thread::a);
+    csnd::plugin<BStrToL>(csound, "bstrtol", "k", "S", csnd::thread::k);
+    csnd::plugin<BStrToF>(csound, "bstrtof", "k", "Sio", csnd::thread::ik);
     csnd::plugin<BytePlay>(csound, "byteplay", "a", "kkk", csnd::thread::ia);
     csnd::plugin<Cheby>(csound, "cheby", "a", "ak", csnd::thread::a);
     csnd::plugin<Cryptoverb>(csound, "cryptoverb", "aa", "aakkk", csnd::thread::ia);
@@ -1276,6 +1344,8 @@ extern "C" int32_t bitinv_init_modules(CSOUND *csound)
 {
     csnd::plugin<BitInv>((csnd::Csound *)csound, "bitinv", "a", "akkkkkkkk",
                          csnd::thread::a);
+    csnd::plugin<BStrToL>((csnd::Csound *)csound, "bstrtol", "k", "S", csnd::thread::k);
+    csnd::plugin<BStrToF>((csnd::Csound *)csound, "bstrtof", "k", "Sio", csnd::thread::ik);
     csnd::plugin<BytePlay>((csnd::Csound *)csound, "byteplay", "a", "kkk",
                            csnd::thread::ia);
     csnd::plugin<Cheby>((csnd::Csound *)csound, "cheby", "a", "ak", csnd::thread::a);

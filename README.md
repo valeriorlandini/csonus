@@ -8,7 +8,19 @@ Currently implemented opcodes are:
     - Usage: `a bitinv in, bit1, bit2, bit3, bit4, bit5, bit6, bit7, bit8`
     - Inputs: audio input + eight boolean (0/1) controls for bit inversion (LSB = bit1, MSB = bit8).
     - Behavior: Clips input to [-1, 1], quantizes to 8 bits (0–255), XORs selected bits, then rescales to [-1, 1].
-    
+
+- `bstrtof`
+    - Purpose: Convert a binary string to a normalized float value using a specified bit width.
+    - Usage: `k bstrtof str, bits, is_signed`
+    - Inputs: binary string (`str`), number of bits (`bits`), signedness flag (`is_signed`, 0 or 1, default: 0)
+    - Behavior: Interprets the binary string as an unsigned or signed number over the given bit width and converts it to a float; signed mode outputs a value in [-1.0, 1.0], unsigned mode in [0.0, 1.0].
+
+- `bstrtol`
+    - Purpose: Convert a binary string to an integer-style value.
+    - Usage: `k bstrtol str`
+    - Inputs: binary string (`str`)
+    - Behavior: Interprets a string of '0' and '1' characters as a binary integer and outputs the resulting value as a float.
+
 - `byteplay`
     - Purpose: Classic bytebeat waveform generator using user-selected formula and sample-rate reduction.
     - Usage: `a byteplay amp, formula_idx, sr_red`
