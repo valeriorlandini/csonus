@@ -705,20 +705,20 @@ struct Linden : csnd::Plugin<1, 3>
 
 
 /******************************************************************************
-logistic: A control rate opcode that applies the classical logistic map algorithm.
+logistic: A control rate opcode that applies the logistic map algorithm.
 
-This opcode takes a control signal and applies a simple logistic map algorithm to
-it. The input signal is multiplied by a weight and then added to a bias. The
-result is then processed through the logistic map function, which creates a chaotic
-output signal. The logistic map is a piecewise linear function that can generate
-complex and chaotic behavior, making it useful for creating evolving modulation
-sources or for generating unique textures in a control signal.
+This opcode takes a control signal and applies a simple logistic map algorithm
+to it. The input signal is multiplied by a weight and then added to a bias.
+The result is then processed through the logistic map function, which creates a
+chaotic output signal. The logistic map is a piecewise linear function that can
+generate complex and chaotic behavior, making it useful for creating evolving
+modulation sources or for generating unique textures in a control signal.
 
 Control Parameters:
   start: The initial value for the logistic map (0.0 to 1.0).
-  r: The r parameter for the logistic map, which controls the shape of the function
-  and the degree of chaos in the output signal (0.0 to 3.999, with values from 3.57
-  onwards leading to chaotic behavior).
+  r: The r parameter for the logistic map, which controls the shape of the
+  function and the degree of chaos in the output signal (0.0 to 3.999, with
+  values from 3.57 onwards leading to chaotic behavior).
 
 Usage:
   k logistic start, r
