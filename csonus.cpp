@@ -22,6 +22,8 @@ SOFTWARE.
 
 #include <plugin.h>
 #include <cmath>
+#include <csound.h>
+
 
 #include "include/genealgo.h"
 #include "soutel/include/soutel/soutel.h"
@@ -1311,6 +1313,90 @@ struct Tent : csnd::Plugin<1, 2>
     }
 };
 
+// TableGain: applies a scalar gain to every sample in a function table (i-time)
+// CSound usage:  itableout  TableGain  iftable, kgain
+//   - inargs[0]  : i-rate table number (ftable handle)
+//   - inargs[1]  : gain factor (i- or k-rate scalar)
+//   - outargs[0] : returns the same table number so you can chain calls
+
+struct WaveSets : csnd::Plugin<1, 4>
+{
+    csnd::Table tbl;
+
+    int32_t init()
+    {
+        if (tbl.init(csound, inargs(0)) == NOTOK)
+        {
+            return csound->init_error("WaveSets: invalid table number");
+        }
+
+        std::vector<MYFLT> buf(tbl.begin(), tbl.end());
+
+        soutel::Wavesets<MYFLT> wavesets_proc(this->sr(), buf);
+        std::string operation = inargs.str_data(1).data;
+
+        unsigned int option_01 = static_cast<unsigned int>(inargs[2]);
+        unsigned int option_02i = static_cast<unsigned int>(inargs[3]);
+        MYFLT option_02f = inargs[3];
+
+        if (operation == "shuffle")
+        {
+            wavesets_proc.shuffle(option_01);
+        }
+        else if (operation == "reverse")
+        {
+            wavesets_proc.reverse(option_01);
+        }
+        else if (operation == "average")
+        {
+            wavesets_proc.average(option_01);
+        }
+        else if (operation == "mirshrink")
+        {
+            wavesets_proc.mirshrink(option_01);
+        }
+        else if (operation == "multiply")
+        {
+            wavesets_proc.multiply(option_01);
+        }
+        else if (operation == "mix")
+        {
+            wavesets_proc.mix(option_01);
+        }
+        else if (operation == "stretch")
+        {
+            wavesets_proc.stretch(option_01, option_02f);
+        }
+        else
+        {
+            return csound->init_error("WaveSets: invalid operation");
+        }
+
+        std::vector<MYFLT> result = wavesets_proc.get_buffer();
+
+        if (result.size() == tbl.len())
+        {
+            std::copy(result.begin(), result.end(), tbl.begin());
+        }
+        else
+        {
+            CSOUND *cs = (CSOUND *) csound;
+
+            int32_t ret = cs->FTAlloc(cs, static_cast<int32_t>(inargs[0]), static_cast<int32_t>(result.size()));
+            if (ret != OK)
+            {
+                return csound->init_error("WaveSets: FTAlloc failed");
+            }
+
+            tbl.init(csound, inargs(0));
+            std::copy(result.begin(), result.end(), tbl.begin());
+        }
+
+        outargs[0] = inargs[0];
+        return OK;
+    }
+};
+
 
 // Registration functions
 #ifdef BUILD_PLUGINS
@@ -1338,6 +1424,7 @@ void csnd::on_load(csnd::Csound *csound)
     csnd::plugin<QuadPan>(csound, "quadpan", "aaaa", "akk", csnd::thread::a);
     csnd::plugin<Roessler>(csound, "roessler", "aaa", "kkkkk", csnd::thread::ia);
     csnd::plugin<Tent>(csound, "tent", "k", "kk", csnd::thread::ik);
+    csnd::plugin<WaveSets>(csound, "wavesets", "i", "iSpp", csnd::thread::i);
 }
 #else
 extern "C" int32_t bitinv_init_modules(CSOUND *csound)
@@ -1373,7 +1460,8 @@ extern "C" int32_t bitinv_init_modules(CSOUND *csound)
     csnd::plugin<Roessler>((csnd::Csound *)csound, "roessler", "aaa", "kkkkk",
                            csnd::thread::ia);
     csnd::plugin<Tent>((csnd::Csound *)csound, "tent", "k", "kk", csnd::thread::ik);
-    csnd::plugin<TestWave>((csnd::Csound *)csound, "testwave", "i[]", "i[]", csnd::thread::i);
+    csnd::plugin<WaveSets>((csnd::Csound *)csound, "wavesets", "i", "iSpp",
+                            csnd::thread::i);
     return OK;
 }
 #endif
