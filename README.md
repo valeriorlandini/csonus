@@ -130,6 +130,12 @@ Currently implemented opcodes are:
     - Behavior: Scales and biases the incoming control value, then applies a piecewise linear tent map to create complex, evolving control output.
 
 
+- `wavesets`
+        - Purpose: Apply various waveset processing algorithms to a wavetable (table containing an audio file).
+        - Usage: `i wavesets table, operation, option_01, option_02`
+        - Inputs: table (wavetable), operation (algorithm selector or name: "shuffle", "reverse", "average", "mirshrink", "multiply", "mix", "stretch"), option_01 (optional, e.g., number of wavesets per group), option_02 (optional, e.g., stretch factor).
+        - Behavior: Processes the input table with the selected waveset algorithm, producing a new wavetable written back to the input table; may resize the table according to the operation and options.
+
 License & Attribution
 ---------------------
 This collection is distributed under the MIT License. See the LICENSE file for the full text and copyright attribution.

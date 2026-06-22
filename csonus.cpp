@@ -24,7 +24,6 @@ SOFTWARE.
 #include <cmath>
 #include <csound.h>
 
-
 #include "include/genealgo.h"
 #include "soutel/include/soutel/soutel.h"
 
@@ -1313,12 +1312,29 @@ struct Tent : csnd::Plugin<1, 2>
     }
 };
 
-// TableGain: applies a scalar gain to every sample in a function table (i-time)
-// CSound usage:  itableout  TableGain  iftable, kgain
-//   - inargs[0]  : i-rate table number (ftable handle)
-//   - inargs[1]  : gain factor (i- or k-rate scalar)
-//   - outargs[0] : returns the same table number so you can chain calls
 
+/******************************************************************************
+wavesets: An opcode that applies various waveset processing
+algorithms to a table containing an audio file.
+
+This opcode takes a wavetable and applies a specified waveset processing
+algorithm to it, generating a new wavetable as output. The operation parameter
+determines which waveset algorithm to apply, while the option parameters allow
+users to customize the behavior of the chosen algorithm. The output is written
+back to the input table, resizing it if necessary.
+
+Control Parameters:
+  table: The input wavetable to be processed.
+  operation: The waveset processing algorithm to apply (e.g., "shuffle",
+  "reverse", "average", "mirshrink", "multiply", "mix", "stretch").
+  option_01: An optional parameter for the chosen algorithm (e.g., number of
+  wavesets for each group).
+  option_02: An optional parameter for the chosen algorithm (e.g., stretch
+  factor).
+
+Usage:
+    i wavesets table, operation, option_01, option_02
+******************************************************************************/
 struct WaveSets : csnd::Plugin<1, 4>
 {
     csnd::Table tbl;
