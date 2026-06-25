@@ -24,6 +24,7 @@ SOFTWARE.
 #include <cmath>
 #include <csound.h>
 
+#include "include/cellauto.h"
 #include "include/genealgo.h"
 #include "soutel/include/soutel/soutel.h"
 
@@ -285,6 +286,114 @@ struct BytePlay : csnd::Plugin<1, 3>
             }
         }
 
+        return OK;
+    }
+};
+
+
+/******************************************************************************
+ca: A configurable cellular automaton system.
+
+This opcode evolves a cellular automaton based on user-defined rules and
+initial states. The user can specify the rules for cell birth and survival, as
+well as the dimensions of the automaton grid. The initial states of the cells
+can also be specified, with 0 being dead and 1 being alive. The output is a
+vector representing the current state of the automaton grid (one dimensional,
+with rows one after another), which evolves over time according to the
+specified rules.
+
+Control Parameters:
+  born_rules: The rules for cell birth (a string, with numbers representing
+  the number of live neighbors).
+  survive_rules: The rules for cell survival (a string, with numbers
+  representing the number of live neighbors).
+  rows: The number of rows in the automaton grid (an integer).
+  cols: The number of columns in the automaton grid (an integer).
+  initial_states: The initial state of the automaton grid (a vector of floats).
+
+Usage:
+  k[] ca born_rules, survive_rules, rows, cols, initial_states
+******************************************************************************/
+struct CA : csnd::Plugin<1, 5> {
+    CellAuto<MYFLT> *ca;
+    
+    int32_t init()
+    {
+        csnd::Vector<MYFLT> &out = outargs.vector_data<MYFLT>(0);
+        csnd::Vector<MYFLT> &in = inargs.vector_data<MYFLT>(4);
+
+        std::string born_rules = inargs.str_data(0).data;
+        std::string survive_rules = inargs.str_data(1).data;
+
+        std::vector<bool> born(9, false);
+        std::vector<bool> survive(9, false);
+
+        for (unsigned int n = 0; n < 9; n++)
+        {
+            if (born_rules.find(std::to_string(n)) != std::string::npos)
+            {
+                ca->set_rule(false, n, true);
+            }
+            else
+            {
+                ca->set_rule(false, n, false);
+            }
+
+            if (survive_rules.find(std::to_string(n)) != std::string::npos)
+            {
+                ca->set_rule(true, n, true);
+            }
+            else
+            {
+                ca->set_rule(true, n, false);
+            }
+        }
+
+        unsigned int rows = static_cast<unsigned int>(inargs[2]);
+        unsigned int cols = static_cast<unsigned int>(inargs[3]);
+
+        if (rows == 0 || cols == 0)
+        {
+            return csound->init_error("Rows and columns must be greater than zero");
+        }
+        
+        out.init(csound, rows * cols, nullptr);
+
+        ca = new CellAuto<MYFLT>(rows, cols);
+
+        if (in.len() > 0  && in.len() == rows * cols)
+        {
+            for (unsigned int r = 0; r < rows; r++)
+            {
+                for (unsigned int c = 0; c < cols; c++)
+                {
+                    ca->set_cell_state(r, c, in[r * cols + c] > 0.5);
+                }
+            }
+        }
+        else
+        {
+            ca->fill_random_matrix();
+        }
+        
+        return OK;
+    }
+    
+    int32_t kperf()
+    {
+        ca->update_matrix();
+        auto matrix = ca->get_matrix();
+        csnd::Vector<MYFLT> &out = outargs.vector_data<MYFLT>(0);
+        for (auto row = 0; row < matrix.size(); row++)
+        {
+            for (auto col = 0; col < matrix[row].size(); col++)
+            {
+                if (out.len() > row * matrix[row].size() + col)
+                {
+                    out[row * matrix[row].size() + col] = matrix[row].at(col) ? 1.0 : 0.0;
+                }
+            }
+        }
         return OK;
     }
 };
@@ -1423,6 +1532,7 @@ void csnd::on_load(csnd::Csound *csound)
     csnd::plugin<BStrToL>(csound, "bstrtol", "k", "S", csnd::thread::k);
     csnd::plugin<BStrToF>(csound, "bstrtof", "k", "Sio", csnd::thread::ik);
     csnd::plugin<BytePlay>(csound, "byteplay", "a", "kkk", csnd::thread::ia);
+    csnd::plugin<CA>(csound, "ca", "k[]", "SSiii[]", csnd::thread::ik);
     csnd::plugin<Cheby>(csound, "cheby", "a", "ak", csnd::thread::a);
     csnd::plugin<Cryptoverb>(csound, "cryptoverb", "aa", "aakkk", csnd::thread::ia);
     csnd::plugin<Drivers>(csound, "drivers", "a", "aik", csnd::thread::ia);
@@ -1451,6 +1561,7 @@ extern "C" int32_t bitinv_init_modules(CSOUND *csound)
     csnd::plugin<BStrToF>((csnd::Csound *)csound, "bstrtof", "k", "Sio", csnd::thread::ik);
     csnd::plugin<BytePlay>((csnd::Csound *)csound, "byteplay", "a", "kkk",
                            csnd::thread::ia);
+    csnd::plugin<CA>((csnd::Csound *)csound, "ca", "k[]", "SSiii[]", csnd::thread::ik);
     csnd::plugin<Cheby>((csnd::Csound *)csound, "cheby", "a", "ak", csnd::thread::a);
     csnd::plugin<Cryptoverb>((csnd::Csound *)csound, "cryptoverb", "aa", "aakkk",
                              csnd::thread::ia);

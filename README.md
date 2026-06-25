@@ -27,6 +27,12 @@ Currently implemented opcodes are:
     - Inputs: amplitude, formula index (0–15), sample-rate reduction factor
     - Behavior: Produces a single evolving audio signal from a bytebeat expression; formula_idx selects the algorithm, and sr_red controls the effective playback rate and evolution speed.
 
+- `ca`
+        - Purpose: A configurable cellular automaton system.
+        - Usage: `k[] ca born_rules, survive_rules, rows, cols, initial_states`
+        - Inputs: birth rules string, survival rules string, number of rows, number of columns, initial state vector.
+        - Behavior: Evolves a cellular automaton from the supplied initial states using the specified birth and survival rules. The output is a one-dimensional vector of the current grid state, with rows stored sequentially.
+
 - `cheby`
     - Purpose: Distortion using a Chebyshev polynomial applied to the input signal.
     - Usage: `a cheby in, order`
