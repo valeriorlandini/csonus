@@ -1,5 +1,5 @@
 # csonus
-Custom CSound operators for creative sound design and algorithmic composition.
+Custom Csound operators for creative sound design and algorithmic composition.
 
 Currently implemented opcodes are:
 
@@ -28,10 +28,10 @@ Currently implemented opcodes are:
     - Behavior: Produces a single evolving audio signal from a bytebeat expression; formula_idx selects the algorithm, and sr_red controls the effective playback rate and evolution speed.
 
 - `ca`
-        - Purpose: A configurable cellular automaton system.
-        - Usage: `k[] ca born_rules, survive_rules, rows, cols, initial_states`
-        - Inputs: birth rules string, survival rules string, number of rows, number of columns, initial state vector.
-        - Behavior: Evolves a cellular automaton from the supplied initial states using the specified birth and survival rules. The output is a one-dimensional vector of the current grid state, with rows stored sequentially.
+    - Purpose: A configurable cellular automaton system.
+    - Usage: `k[] ca born_rules, survive_rules, rows, cols, initial_states`
+    - Inputs: birth rules string, survival rules string, number of rows, number of columns, initial state vector.
+    - Behavior: Evolves a cellular automaton from the supplied initial states using the specified birth and survival rules. The output is a one-dimensional vector of the current grid state, with rows stored sequentially.
 
 - `cheby`
     - Purpose: Distortion using a Chebyshev polynomial applied to the input signal.
@@ -137,10 +137,10 @@ Currently implemented opcodes are:
 
 
 - `wavesets`
-        - Purpose: Apply various waveset processing algorithms to a wavetable (table containing an audio file).
-        - Usage: `i wavesets table, operation, option_01, option_02`
-        - Inputs: table (wavetable), operation (algorithm selector or name: "shuffle", "reverse", "average", "mirshrink", "multiply", "mix", "stretch"), option_01 (optional, e.g., number of wavesets per group), option_02 (optional, e.g., stretch factor).
-        - Behavior: Processes the input table with the selected waveset algorithm, producing a new wavetable written back to the input table; may resize the table according to the operation and options.
+    - Purpose: Apply various waveset processing algorithms to a wavetable (table containing an audio file).
+    - Usage: `i wavesets table, operation, option_01, option_02`
+    - Inputs: table (wavetable), operation (algorithm selector or name: "shuffle", "reverse", "average", "mirshrink", "multiply", "mix", "stretch"), option_01 (optional, e.g., number of wavesets per group), option_02 (optional, e.g., stretch factor).
+    - Behavior: Processes the input table with the selected waveset algorithm, producing a new wavetable written back to the input table; may resize the table according to the operation and options.
 
 License & Attribution
 ---------------------
